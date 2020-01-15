@@ -9,3 +9,132 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=p
     id: 'mapbox.streets'
 })
 .addTo(mymap);
+
+
+//Fonction qui affiche la position des sondes sur la carte
+
+$(document).ready(function() {
+    refresh();
+});
+
+function testdelay(){
+    console.log("Une action");
+}
+
+function GetProbe_pos()
+    {
+        $.ajax({
+            type:"GET",
+            url:"http://10.176.129.94:5000/atmos/probe/",
+            headers:{"Access-Control-Allow-Header": "*"},
+            success: function(data){
+                console.log(data);
+                id_probes=new Array;
+                for(i=0;i<data.length;i++)
+                {
+                    DispProbe_pos(data[i]['id'],data[i]['user'],data[i]['name'],data[i]['pos_x'],data[i]['pos_y'],data[i]['active'],data[i]['error'])
+                    id_probes.push(data[i]['id']);
+                }
+               GetProbe_measures(id_probes)
+            },
+            error: function(){
+                console.log("failed to acquire probes localisations");
+                console.log("loading fictive positions...")
+                data=new Array;
+                data=[
+                         {'id':0,'user':1,'pos_x':49.033326,'pos_y':0.1256,'name':"sonde_1",'active':1,'error':0}
+                        ,{'id':1,'user':1,'pos_x':45.226555,'pos_y':1.3333,'name':"sonde_2_unactive",'active':0,'error':0}
+                        ,{'id':2,'user':1,'pos_x':44.5,'pos_y':3.3333,'name':"sonde_3_error",'active':1,'error':1}
+                        ,{'id':3,'user':2,'pos_x':48.6555,'pos_y':2.16333,'name':"sonde_4_diffuser",'active':1,'error':0}
+                     ]
+                probes_info=new Array;
+                for(i=0;i<data.length;i++)
+                {
+                DispProbe_pos(data[i]['id'],data[i]['user'],data[i]['name'],data[i]['pos_x'],data[i]['pos_y'],data[i]['active'],data[i]['error'])
+                probes_info.push({'id':data[i]['id'],'pos_x':data[i]['pos_x'],'pos_y':+data[i]['pos_y']})
+                }
+                Fictive_Measures(probes_info)
+            },
+            dataType:'json',            
+        });
+
+    }
+
+   function GetProbe_measures(id_probes)
+    {
+        $.ajax({
+            type:"GET",
+            url:"http://10.176.129.94:5000/atmos/measure/last/all",
+            headers:{"Access-Control-Allow-Header": "*"},
+            success: function(data_measures){
+                console.log(data_measures);
+            },
+            error: function(){
+                console.log("failed to acquire probes measures");
+            },
+            dataType:'json',            
+        });
+
+    }
+    
+    function Fictive_Measures(probes_info)
+    {
+        console.log("loading fictive measures");
+        data_measures=new Array;
+        data_measures=[
+                         {'id':0,'temp':27.2,'humi':37.5,'date':"2020-01-01 17:08:55"}
+                        ,{'id':1,'temp':29.4,'humi':36.2,'date':"2020-01-04 17:07:46"}
+                        ,{'id':3,'temp':28.0,'humi':30.0,'date':"2020-01-03 12:05:39"}
+                      ]
+        data_full=new Array;
+        for(j=0;j<data_measures.length;j++)
+        {
+             data_full.push({'id':data_measures[j]['id'],'pos_x':probes_info[data_measures[j]['id']]['pos_x'],'pos_y':probes_info[data_measures[j]['id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humi'],'date':data_measures[j]['date']})
+        }
+        console.log(data_full);
+        DispProbe_measure(data_full); 
+    }
+
+function DispProbe_pos(id_probe,user,name,pos_x,pos_y,isactive,error)
+  { 
+    var greenIcon = new L.Icon({
+        iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+      var redIcon = new L.Icon({
+        iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      });
+      if(isactive==1)
+      {
+       L.marker([pos_x, pos_y],{icon: greenIcon})
+        .bindPopup('<b>' +"Probe name : "+name+" (id : "+id_probe+")"+'</b>')
+        .addTo(mymap);
+      }
+      else
+      {
+       L.marker([pos_x, pos_y],{icon: redIcon})
+        .bindPopup('<b>' +"Probe name : "+name+" (id : "+id_probe+")"+'</b>')
+        .addTo(mymap);
+      }
+   
+  }
+
+function DispProbe_measure()
+{
+    L.Circle()
+}
+
+function refresh()
+{
+    GetProbe_pos();
+    setTimeout(refresh,10000);
+}
