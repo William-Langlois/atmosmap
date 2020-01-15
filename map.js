@@ -1,4 +1,4 @@
-var mymap = L.map('mapid').setView([38, 10], 2);
+var mymap = L.map('mapid').setView([49.42266, 1.066265], 12);
 
 function DispMap(){
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', 
@@ -35,7 +35,15 @@ function GetProbe_pos()
                GetProbe_measures(probes_info)
             },
             error: function(){
-                data=new Array;
+                GetFictiveProbe_pos();
+            },
+            dataType:'json',            
+        });
+
+    }
+    function GetFictiveProbe_pos()
+    {
+        data=new Array;
                 data=[
                          {'id':0,'user':1,'pos_x':49.033326,'pos_y':0.1256,'name':"sonde_1",'active':1,'error':0}
                         ,{'id':1,'user':1,'pos_x':45.226555,'pos_y':1.3333,'name':"sonde_2_unactive",'active':0,'error':0}
@@ -49,11 +57,8 @@ function GetProbe_pos()
                 probes_info.push({'id':data[i]['id'],'probename':data[i]['name'],'pos_x':data[i]['pos_x'],'pos_y':data[i]['pos_y']})
                 }
                 Fictive_Measures(probes_info)
-            },
-            dataType:'json',            
-        });
-
     }
+
 
    function GetProbe_measures(probes_info)
     {
@@ -66,11 +71,11 @@ function GetProbe_pos()
                 for(j=0;j<data_measures.length;j++)
                  {
                     if(data_measures[j]['error']['flag']==true){
-                        data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"no measure",'humi':"no measure",'date':"no measure"})
+                        data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"N/A",'humi':"N/A",'date':"N/A"})
                         DispProbe_measure(data_measures.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
                     }
                     else{
-                    data_full.push({'id':data_measures[j]['id'],'probename':probes_info[data_measures[j]['id']]['probename'],'pos_x':probes_info[data_measures[j]['id']]['pos_x'],'pos_y':probes_info[data_measures[j]['id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humi'],'date':data_measures[j]['date']})
+                    data_full.push({'id':data_measures[j]['probe_id'],'probename':probes_info[data_measures[j]['probe_id']]['probename'],'pos_x':probes_info[data_measures[j]['probe_id']]['pos_x'],'pos_y':probes_info[data_measures[j]['probe_id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humidite'],'date':data_measures[j]['date']})
                     DispProbe_measure(data_measures.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
                     }
                 }
@@ -79,7 +84,7 @@ function GetProbe_pos()
                 data_full=new Array;
                 for(j=0;j<probes_info.length;j++)
                 {
-                data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"no measure",'humi':"no measure",'date':"no measure"})
+                data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"N/A",'humi':"N/A",'date':"N/A"})
                 DispProbe_measure(probes_info.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
                 }
             },
@@ -142,18 +147,19 @@ function DispProbe_measure(nbmeasure,id,probename,pos_x,pos_y,temp,humi,date)
 {
     
     L.circle([pos_x,pos_y],{})
-     .setRadius(100)
-     .bindPopup('<b>'+"température : "+temp+" / humidité : "+humi+ "/ date : "+date+" / Nom de la sonde : "+probename+'</b>')
+     .setRadius(500)
+     .bindPopup('<b>'+"Température : "+temp+'°C<br/>'+"Humidité : "+humi+"%"+'<br/>'+"Date : "+date+'<br/>'+"Nom de la sonde : "+probename+'</b>')
      .addTo(mymap);
 }
 
-function refresh()
+function refresh(isfictive)
 {
     mymap.eachLayer(function(layer){
         if((layer._url)!=("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw")){
         mymap.removeLayer(layer);
         }
     })
+
     GetProbe_pos();
-    setTimeout(refresh,10000);
-}
+    setTimeout(refresh,20000);
+}    
