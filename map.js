@@ -1,5 +1,6 @@
 var mymap = L.map('mapid').setView([38, 10], 2);
 
+function DispMap(){
 L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', 
 {
     maxZoom: 18,
@@ -9,17 +10,14 @@ L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=p
     id: 'mapbox.streets'
 })
 .addTo(mymap);
-
+}
 
 //Fonction qui affiche la position des sondes sur la carte
 
 $(document).ready(function() {
     refresh();
+    DispMap();
 });
-
-function testdelay(){
-    console.log("Une action");
-}
 
 function GetProbe_pos()
     {
@@ -28,18 +26,15 @@ function GetProbe_pos()
             url:"http://10.176.129.94:5000/atmos/probe/",
             headers:{"Access-Control-Allow-Header": "*"},
             success: function(data){
-                console.log(data);
-                id_probes=new Array;
+                probes_info=new Array;
                 for(i=0;i<data.length;i++)
                 {
                     DispProbe_pos(data[i]['id'],data[i]['user'],data[i]['name'],data[i]['pos_x'],data[i]['pos_y'],data[i]['active'],data[i]['error'])
-                    id_probes.push(data[i]['id']);
+                    probes_info.push({'id':data[i]['id'],'probename':data[i]['name'],'pos_x':data[i]['pos_x'],'pos_y':data[i]['pos_y']})
                 }
-               GetProbe_measures(id_probes)
+               GetProbe_measures(probes_info)
             },
             error: function(){
-                console.log("failed to acquire probes localisations");
-                console.log("loading fictive positions...")
                 data=new Array;
                 data=[
                          {'id':0,'user':1,'pos_x':49.033326,'pos_y':0.1256,'name':"sonde_1",'active':1,'error':0}
@@ -51,7 +46,7 @@ function GetProbe_pos()
                 for(i=0;i<data.length;i++)
                 {
                 DispProbe_pos(data[i]['id'],data[i]['user'],data[i]['name'],data[i]['pos_x'],data[i]['pos_y'],data[i]['active'],data[i]['error'])
-                probes_info.push({'id':data[i]['id'],'pos_x':data[i]['pos_x'],'pos_y':+data[i]['pos_y']})
+                probes_info.push({'id':data[i]['id'],'probename':data[i]['name'],'pos_x':data[i]['pos_x'],'pos_y':data[i]['pos_y']})
                 }
                 Fictive_Measures(probes_info)
             },
@@ -60,17 +55,33 @@ function GetProbe_pos()
 
     }
 
-   function GetProbe_measures(id_probes)
+   function GetProbe_measures(probes_info)
     {
         $.ajax({
             type:"GET",
             url:"http://10.176.129.94:5000/atmos/measure/last/all",
             headers:{"Access-Control-Allow-Header": "*"},
             success: function(data_measures){
-                console.log(data_measures);
+                data_full=new Array;
+                for(j=0;j<data_measures.length;j++)
+                 {
+                    if(data_measures[j]['error']['flag']==true){
+                        data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"no measure",'humi':"no measure",'date':"no measure"})
+                        DispProbe_measure(data_measures.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
+                    }
+                    else{
+                    data_full.push({'id':data_measures[j]['id'],'probename':probes_info[data_measures[j]['id']]['probename'],'pos_x':probes_info[data_measures[j]['id']]['pos_x'],'pos_y':probes_info[data_measures[j]['id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humi'],'date':data_measures[j]['date']})
+                    DispProbe_measure(data_measures.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
+                    }
+                }
             },
             error: function(){
-                console.log("failed to acquire probes measures");
+                data_full=new Array;
+                for(j=0;j<probes_info.length;j++)
+                {
+                data_full.push({'id':probes_info[j]['id'],'probename':probes_info[j]['probename'],'pos_x':probes_info[j]['pos_x'],'pos_y':probes_info[j]['pos_y'],'temp':"no measure",'humi':"no measure",'date':"no measure"})
+                DispProbe_measure(probes_info.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
+                }
             },
             dataType:'json',            
         });
@@ -79,7 +90,6 @@ function GetProbe_pos()
     
     function Fictive_Measures(probes_info)
     {
-        console.log("loading fictive measures");
         data_measures=new Array;
         data_measures=[
                          {'id':0,'temp':27.2,'humi':37.5,'date':"2020-01-01 17:08:55"}
@@ -89,10 +99,9 @@ function GetProbe_pos()
         data_full=new Array;
         for(j=0;j<data_measures.length;j++)
         {
-             data_full.push({'id':data_measures[j]['id'],'pos_x':probes_info[data_measures[j]['id']]['pos_x'],'pos_y':probes_info[data_measures[j]['id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humi'],'date':data_measures[j]['date']})
+             data_full.push({'id':data_measures[j]['id'],'probename':probes_info[data_measures[j]['id']]['probename'],'pos_x':probes_info[data_measures[j]['id']]['pos_x'],'pos_y':probes_info[data_measures[j]['id']]['pos_y'],'temp':data_measures[j]['temp'],'humi':data_measures[j]['humi'],'date':data_measures[j]['date']})
+             DispProbe_measure(data_measures.length,data_full[j]['id'],data_full[j]['probename'],data_full[j]['pos_x'],data_full[j]['pos_y'],data_full[j]['temp'],data_full[j]['humi'],data_full[j]['date'])
         }
-        console.log(data_full);
-        DispProbe_measure(data_full); 
     }
 
 function DispProbe_pos(id_probe,user,name,pos_x,pos_y,isactive,error)
@@ -112,29 +121,39 @@ function DispProbe_pos(id_probe,user,name,pos_x,pos_y,isactive,error)
         iconAnchor: [12, 41],
         popupAnchor: [1, -34],
         shadowSize: [41, 41]
-      });
+      });      
+
       if(isactive==1)
       {
        L.marker([pos_x, pos_y],{icon: greenIcon})
-        .bindPopup('<b>' +"Probe name : "+name+" (id : "+id_probe+")"+'</b>')
+        .bindPopup('<b>' +"Nom de la sonde : "+name+" (id : "+id_probe+")"+'</b>')
         .addTo(mymap);
       }
       else
       {
        L.marker([pos_x, pos_y],{icon: redIcon})
-        .bindPopup('<b>' +"Probe name : "+name+" (id : "+id_probe+")"+'</b>')
+        .bindPopup('<b>' +"Nom de la sonde : "+name+" (id : "+id_probe+")"+'</b>')
         .addTo(mymap);
       }
    
   }
 
-function DispProbe_measure()
+function DispProbe_measure(nbmeasure,id,probename,pos_x,pos_y,temp,humi,date)
 {
-    L.Circle()
+    
+    L.circle([pos_x,pos_y],{})
+     .setRadius(100)
+     .bindPopup('<b>'+"température : "+temp+" / humidité : "+humi+ "/ date : "+date+" / Nom de la sonde : "+probename+'</b>')
+     .addTo(mymap);
 }
 
 function refresh()
 {
+    mymap.eachLayer(function(layer){
+        if((layer._url)!=("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw")){
+        mymap.removeLayer(layer);
+        }
+    })
     GetProbe_pos();
     setTimeout(refresh,10000);
 }
